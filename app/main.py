@@ -11,6 +11,7 @@ from app.services.ocr_service import process_image
 from fastapi.staticfiles import StaticFiles
 
 
+
 app = FastAPI(
     title="Exam Answer Marking API",
     description="API for automated marking of exam answers using LLM",

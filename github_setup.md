@@ -52,7 +52,6 @@ If your default branch is named "main" instead of "master", use:
 ```bash
 git push -u origin main
 ```
-
 ## Troubleshooting
 
 If you're still having issues:
