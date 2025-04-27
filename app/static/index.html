@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Exam Marker</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Material Icons -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+  <!-- Material Components Web -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/material-components-web/14.0.0/material-components-web.min.css" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/material-components-web/14.0.0/material-components-web.min.js"></script>
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+  
+  <style>
+    body {
+      font-family: 'Roboto', sans-serif;
+      background-color: #f5f5f5;
+    }
+    .mdc-card {
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    .mdc-button {
+      text-transform: none;
+      font-weight: 500;
+    }
+    .loader {
+      border: 4px solid #f3f3f3;
+      border-radius: 50%;
+      border-top: 4px solid #3498db;
+      width: 30px;
+      height: 30px;
+      animation: spin 1s linear infinite;
+      display: inline-block;
+      margin-right: 10px;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+  <div class="container mx-auto px-4 py-8">
+    <!-- Header -->
+    <header class="text-center mb-10">
+      <h1 class="text-3xl font-bold text-gray-800">AI Exam Marking System</h1>
+      <p class="text-gray-600 mt-2">Get instant feedback on your answers using AI</p>
+    </header>
+
+    <!-- Main Content -->
+    <div class="grid grid-cols-1 md:grid-cols-12 gap-8">
+      <!-- Question Selection and Answer Submission -->
+      <div class="md:col-span-5">
+        <div class="bg-white rounded-lg shadow-md p-6">
+          <!-- Tabs -->
+          <div class="flex border-b border-gray-200 mb-6">
+            <button id="text-tab" class="px-4 py-2 border-b-2 border-blue-500 text-blue-600 font-medium">Text Answer</button>
+            <button id="image-tab" class="px-4 py-2 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium">Image Upload</button>
+          </div>
+          
+          <!-- Text Submission Form -->
+          <div id="text-form">
+            <h2 class="text-xl font-semibold mb-4 text-gray-800">Submit Your Answer</h2>
+          
+          <!-- Question Selector -->
+          <div class="mb-6">
+            <label for="question-select" class="block text-gray-700 mb-2">Select a Question:</label>
+            <div class="relative">
+              <select id="question-select" class="w-full p-3 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="" disabled selected>Choose a question</option>
+                <!-- Questions will be loaded here -->
+              </select>
+              <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-700">
+                <span class="material-icons">expand_more</span>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Question Display -->
+          <div id="question-display" class="mb-6 p-4 bg-gray-50 rounded-md hidden">
+            <h3 class="font-medium text-gray-800 mb-2">Question:</h3>
+            <p id="question-text" class="text-gray-700"></p>
+            <div class="mt-3 text-sm">
+              <span class="text-blue-600 font-medium">Topic:</span>
+              <span id="question-topic" class="text-gray-600 ml-1"></span>
+              <span class="mx-2">•</span>
+              <span class="text-blue-600 font-medium">Max Marks:</span>
+              <span id="question-marks" class="text-gray-600 ml-1"></span>
+            </div>
+          </div>
+          
+          <!-- Answer Textarea -->
+          <div class="mb-6">
+            <label for="answer-textarea" class="block text-gray-700 mb-2">Your Answer:</label>
+            <textarea id="answer-textarea" rows="8" class="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Type your answer here..."></textarea>
+            <p class="mt-2 text-xs text-gray-500">Write a complete and detailed answer to get the best feedback.</p>
+          </div>
+          
+            <!-- Submit Button -->
+            <button id="submit-button" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-md transition duration-300 flex items-center justify-center">
+              <span class="material-icons mr-2">send</span>
+              Submit for Marking
+            </button>
+            <div id="submit-loader" class="hidden mt-4 text-center">
+              <div class="loader"></div>
+              <span class="text-gray-600">Analyzing your answer...</span>
+            </div>
+          </div>
+          
+          <!-- Image Upload Form -->
+          <div id="image-form" class="hidden">
+            <h2 class="text-xl font-semibold mb-4 text-gray-800">Upload Answer Image</h2>
+            
+            <!-- Question Selector for Image -->
+            <div class="mb-6">
+              <label for="image-question-select" class="block text-gray-700 mb-2">Select a Question:</label>
+              <div class="relative">
+                <select id="image-question-select" class="w-full p-3 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  <option value="" disabled selected>Choose a question</option>
+                  <!-- Questions will be loaded here -->
+                </select>
+                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-700">
+                  <span class="material-icons">expand_more</span>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Question Display for Image -->
+            <div id="image-question-display" class="mb-6 p-4 bg-gray-50 rounded-md hidden">
+              <h3 class="font-medium text-gray-800 mb-2">Question:</h3>
+              <p id="image-question-text" class="text-gray-700"></p>
+              <div class="mt-3 text-sm">
+                <span class="text-blue-600 font-medium">Topic:</span>
+                <span id="image-question-topic" class="text-gray-600 ml-1"></span>
+                <span class="mx-2">•</span>
+                <span class="text-blue-600 font-medium">Max Marks:</span>
+                <span id="image-question-marks" class="text-gray-600 ml-1"></span>
+              </div>
+            </div>
+            
+            <!-- Image Upload -->
+            <div class="mb-6">
+              <label for="image-upload" class="block text-gray-700 mb-2">Upload Image:</label>
+              <div class="border-2 border-dashed border-gray-300 rounded-md p-6 text-center hover:border-blue-500 transition-colors">
+                <input type="file" id="image-upload" class="hidden" accept="image/*">
+                <label for="image-upload" class="cursor-pointer">
+                  <span class="material-icons text-gray-400 text-4xl mb-2">cloud_upload</span>
+                  <p class="text-gray-600 mb-1">Click to upload or drag and drop</p>
+                  <p class="text-xs text-gray-500">PNG, JPG, or JPEG (max. 5MB)</p>
+                </label>
+                <div id="image-preview" class="mt-4 hidden">
+                  <img id="preview-image" class="max-h-48 mx-auto border rounded-md" src="" alt="Preview">
+                  <button id="remove-image" class="mt-2 text-red-500 text-sm flex items-center mx-auto">
+                    <span class="material-icons text-sm mr-1">delete</span>
+                    Remove
+                  </button>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Grade Option -->
+            <div class="mb-6 flex items-center">
+              <input type="checkbox" id="grade-image" class="mr-2">
+              <label for="grade-image" class="text-gray-700">Grade extracted text</label>
+              <span class="ml-2 text-xs text-gray-500">(OCR will extract text from your image and submit it for grading)</span>
+            </div>
+            
+            <!-- Submit Button for Image -->
+            <button id="image-submit-button" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-md transition duration-300 flex items-center justify-center">
+              <span class="material-icons mr-2">image</span>
+              Upload and Process
+            </button>
+            <div id="image-submit-loader" class="hidden mt-4 text-center">
+              <div class="loader"></div>
+              <span class="text-gray-600">Processing image...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Feedback and OCR Results Display -->
+      <div class="md:col-span-7">
+        <!-- OCR Results -->
+        <div id="ocr-results-container" class="bg-white rounded-lg shadow-md p-6 mb-6 hidden">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xl font-semibold text-gray-800">OCR Results</h2>
+            <span class="text-sm text-blue-600">Powered by Google Vision API</span>
+          </div>
+          
+          <div class="p-4 bg-gray-50 rounded-md">
+            <h3 class="font-medium text-gray-800 mb-2">Extracted Text:</h3>
+            <p id="extracted-text" class="text-gray-700 whitespace-pre-line"></p>
+          </div>
+        </div>
+        
+        <!-- Feedback Display -->
+        <div id="feedback-container" class="bg-white rounded-lg shadow-md p-6 hidden">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xl font-semibold text-gray-800">Feedback & Marks</h2>
+            <div class="flex items-center">
+              <span id="total-marks" class="text-2xl font-bold text-blue-600">0</span>
+              <span class="mx-1 text-gray-400">/</span>
+              <span id="max-marks" class="text-gray-600">0</span>
+            </div>
+          </div>
+          
+          <!-- Overall Feedback -->
+          <div class="mb-6 p-4 bg-gray-50 rounded-md">
+            <h3 class="font-medium text-gray-800 mb-2">Overall Feedback:</h3>
+            <p id="overall-feedback" class="text-gray-700 italic"></p>
+          </div>
+          
+          <!-- Detailed Marking -->
+          <h3 class="font-medium text-gray-800 mb-3">Detailed Marking:</h3>
+          <div id="detailed-marking" class="space-y-4">
+            <!-- Marking points will be added here -->
+          </div>
+        </div>
+        
+        <!-- Placeholder when no feedback -->
+        <div id="feedback-placeholder" class="bg-white rounded-lg shadow-md p-6 flex flex-col items-center justify-center min-h-[400px] text-center">
+          <span class="material-icons text-gray-400 text-5xl mb-4">feedback</span>
+          <h2 class="text-xl font-semibold text-gray-700 mb-2">No Feedback Yet</h2>
+          <p class="text-gray-500">Select a question and submit your answer to receive AI-powered feedback.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // API endpoint
+      const API_BASE_URL = 'http://127.0.0.1:8000';
+      
+      // Tab elements
+      const textTab = document.getElementById('text-tab');
+      const imageTab = document.getElementById('image-tab');
+      const textForm = document.getElementById('text-form');
+      const imageForm = document.getElementById('image-form');
+      
+      // Text form elements
+      const questionSelect = document.getElementById('question-select');
+      const questionDisplay = document.getElementById('question-display');
+      const questionText = document.getElementById('question-text');
+      const questionTopic = document.getElementById('question-topic');
+      const questionMarks = document.getElementById('question-marks');
+      const answerTextarea = document.getElementById('answer-textarea');
+      const submitButton = document.getElementById('submit-button');
+      const submitLoader = document.getElementById('submit-loader');
+      
+      // Image form elements
+      const imageQuestionSelect = document.getElementById('image-question-select');
+      const imageQuestionDisplay = document.getElementById('image-question-display');
+      const imageQuestionText = document.getElementById('image-question-text');
+      const imageQuestionTopic = document.getElementById('image-question-topic');
+      const imageQuestionMarks = document.getElementById('image-question-marks');
+      const imageUpload = document.getElementById('image-upload');
+      const imagePreview = document.getElementById('image-preview');
+      const previewImage = document.getElementById('preview-image');
+      const removeImage = document.getElementById('remove-image');
+      const gradeImage = document.getElementById('grade-image');
+      const imageSubmitButton = document.getElementById('image-submit-button');
+      const imageSubmitLoader = document.getElementById('image-submit-loader');
+      
+      // Feedback elements
+      const feedbackContainer = document.getElementById('feedback-container');
+      const feedbackPlaceholder = document.getElementById('feedback-placeholder');
+      const totalMarks = document.getElementById('total-marks');
+      const maxMarks = document.getElementById('max-marks');
+      const overallFeedback = document.getElementById('overall-feedback');
+      const detailedMarking = document.getElementById('detailed-marking');
+      
+      // Tab switching
+      textTab.addEventListener('click', function() {
+        textTab.classList.add('border-blue-500', 'text-blue-600');
+        textTab.classList.remove('border-transparent', 'text-gray-500');
+        imageTab.classList.remove('border-blue-500', 'text-blue-600');
+        imageTab.classList.add('border-transparent', 'text-gray-500');
+        textForm.classList.remove('hidden');
+        imageForm.classList.add('hidden');
+      });
+      
+      imageTab.addEventListener('click', function() {
+        imageTab.classList.add('border-blue-500', 'text-blue-600');
+        imageTab.classList.remove('border-transparent', 'text-gray-500');
+        textTab.classList.remove('border-blue-500', 'text-blue-600');
+        textTab.classList.add('border-transparent', 'text-gray-500');
+        imageForm.classList.remove('hidden');
+        textForm.classList.add('hidden');
+      });
+      
+      // Fetch questions from API
+      async function fetchQuestions() {
+        try {
+          const response = await fetch(`${API_BASE_URL}/questions`);
+          if (!response.ok) {
+            throw new Error('Failed to fetch questions');
+          }
+          
+          const data = await response.json();
+          if (data && data.questions && data.questions.length > 0) {
+            // Populate question selects for both forms
+            data.questions.forEach(question => {
+              // For text form
+              const option = document.createElement('option');
+              option.value = question.question_id;
+              option.textContent = `${question.question_id}: ${question.topic} (${question.max_marks} marks)`;
+              option.dataset.question = JSON.stringify(question);
+              questionSelect.appendChild(option);
+              
+              // For image form
+              const imageOption = document.createElement('option');
+              imageOption.value = question.question_id;
+              imageOption.textContent = `${question.question_id}: ${question.topic} (${question.max_marks} marks)`;
+              imageOption.dataset.question = JSON.stringify(question);
+              imageQuestionSelect.appendChild(imageOption);
+            });
+          } else {
+            // If no questions available
+            const noQuestionsOption = document.createElement('option');
+            noQuestionsOption.value = '';
+            noQuestionsOption.textContent = 'No questions available';
+            noQuestionsOption.disabled = true;
+            
+            questionSelect.appendChild(noQuestionsOption.cloneNode(true));
+            imageQuestionSelect.appendChild(noQuestionsOption);
+            
+            submitButton.disabled = true;
+            imageSubmitButton.disabled = true;
+          }
+        } catch (error) {
+          console.error('Error fetching questions:', error);
+          alert('Failed to load questions. Please check if the API is running.');
+        }
+      }
+      
+      // Handle question selection for text form
+      questionSelect.addEventListener('change', function() {
+        if (this.value) {
+          const selectedOption = this.options[this.selectedIndex];
+          const questionData = JSON.parse(selectedOption.dataset.question);
+          
+          // Display question details
+          questionText.textContent = questionData.question;
+          questionTopic.textContent = questionData.topic;
+          questionMarks.textContent = `${questionData.max_marks} marks`;
+          
+          // Show question display
+          questionDisplay.classList.remove('hidden');
+          
+          // Reset answer and feedback
+          answerTextarea.value = '';
+          feedbackContainer.classList.add('hidden');
+          feedbackPlaceholder.classList.remove('hidden');
+        } else {
+          questionDisplay.classList.add('hidden');
+        }
+      });
+      
+      // Handle question selection for image form
+      imageQuestionSelect.addEventListener('change', function() {
+        if (this.value) {
+          const selectedOption = this.options[this.selectedIndex];
+          const questionData = JSON.parse(selectedOption.dataset.question);
+          
+          // Display question details
+          imageQuestionText.textContent = questionData.question;
+          imageQuestionTopic.textContent = questionData.topic;
+          imageQuestionMarks.textContent = `${questionData.max_marks} marks`;
+          
+          // Show question display
+          imageQuestionDisplay.classList.remove('hidden');
+          
+          // Reset feedback
+          feedbackContainer.classList.add('hidden');
+          feedbackPlaceholder.classList.remove('hidden');
+        } else {
+          imageQuestionDisplay.classList.add('hidden');
+        }
+      });
+      
+      // Handle image upload
+      imageUpload.addEventListener('change', function(e) {
+        if (this.files && this.files[0]) {
+          const file = this.files[0];
+          
+          // Check file type
+          if (!file.type.match('image.*')) {
+            alert('Please select an image file');
+            return;
+          }
+          
+          // Check file size (5MB max)
+          if (file.size > 5 * 1024 * 1024) {
+            alert('File size exceeds 5MB limit');
+            return;
+          }
+          
+          // Show preview
+          const reader = new FileReader();
+          reader.onload = function(e) {
+            previewImage.src = e.target.result;
+            imagePreview.classList.remove('hidden');
+          };
+          reader.readAsDataURL(file);
+        }
+      });
+      
+      // Handle remove image
+      removeImage.addEventListener('click', function() {
+        imageUpload.value = '';
+        imagePreview.classList.add('hidden');
+        previewImage.src = '';
+      });
+      
+      // Handle text form submission
+      submitButton.addEventListener('click', async function() {
+        const selectedQuestionId = questionSelect.value;
+        const answer = answerTextarea.value.trim();
+        
+        if (!selectedQuestionId) {
+          alert('Please select a question');
+          return;
+        }
+        
+        if (!answer) {
+          alert('Please enter your answer');
+          return;
+        }
+        
+        // Show loader, disable button
+        submitButton.disabled = true;
+        submitLoader.classList.remove('hidden');
+        
+        try {
+          const response = await fetch(`${API_BASE_URL}/submit-answer`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              question_id: selectedQuestionId,
+              answer: answer
+            })
+          });
+          
+          if (!response.ok) {
+            throw new Error('Failed to submit answer');
+          }
+          
+          const feedback = await response.json();
+          displayFeedback(feedback);
+        } catch (error) {
+          console.error('Error submitting answer:', error);
+          alert('Failed to submit your answer. Please try again.');
+        } finally {
+          // Hide loader, enable button
+          submitButton.disabled = false;
+          submitLoader.classList.add('hidden');
+        }
+      });
+      
+      // Handle image form submission
+      imageSubmitButton.addEventListener('click', async function() {
+        const selectedQuestionId = imageQuestionSelect.value;
+        const file = imageUpload.files[0];
+        const shouldGrade = gradeImage.checked;
+        
+        if (!selectedQuestionId) {
+          alert('Please select a question');
+          return;
+        }
+        
+        if (!file) {
+          alert('Please upload an image');
+          return;
+        }
+        
+        // Show loader, disable button
+        imageSubmitButton.disabled = true;
+        imageSubmitLoader.classList.remove('hidden');
+        
+        try {
+          // Create form data
+          const formData = new FormData();
+          formData.append('question_id', selectedQuestionId);
+          formData.append('image', file);
+          formData.append('grade', shouldGrade);
+          
+          const response = await fetch(`${API_BASE_URL}/submit-image`, {
+            method: 'POST',
+            body: formData
+          });
+          
+          if (!response.ok) {
+            throw new Error('Failed to process image');
+          }
+          
+          const result = await response.json();
+          
+          // Display extracted text in the OCR results container
+          const extractedTextElement = document.getElementById('extracted-text');
+          extractedTextElement.textContent = result.extracted_text;
+          
+          // Show OCR results container
+          const ocrResultsContainer = document.getElementById('ocr-results-container');
+          ocrResultsContainer.classList.remove('hidden');
+          
+          // If grading was requested and feedback is available
+          if (shouldGrade && result.feedback) {
+            displayFeedback(result.feedback);
+          } else {
+            // If not grading, hide feedback container and show placeholder
+            feedbackContainer.classList.add('hidden');
+            feedbackPlaceholder.classList.remove('hidden');
+          }
+          
+          // Scroll to OCR results
+          ocrResultsContainer.scrollIntoView({ behavior: 'smooth' });
+        } catch (error) {
+          console.error('Error processing image:', error);
+          alert('Failed to process your image. Please try again.');
+        } finally {
+          // Hide loader, enable button
+          imageSubmitButton.disabled = false;
+          imageSubmitLoader.classList.add('hidden');
+        }
+      });
+      
+      // Display feedback
+      function displayFeedback(feedback) {
+        // Set marks
+        totalMarks.textContent = feedback.total_marks_awarded;
+        maxMarks.textContent = feedback.total_marks_available;
+        
+        // Set overall feedback
+        overallFeedback.textContent = feedback.overall_feedback;
+        
+        // Clear previous detailed marking
+        detailedMarking.innerHTML = '';
+        
+        // Add detailed marking points
+        feedback.detailed_marking.forEach(point => {
+          const markingPoint = document.createElement('div');
+          markingPoint.className = 'border border-gray-200 rounded-md overflow-hidden';
+          
+          // Header with criterion and marks
+          const header = document.createElement('div');
+          header.className = 'flex justify-between items-center p-3 bg-gray-50 border-b border-gray-200';
+          
+          const criterionName = document.createElement('h4');
+          criterionName.className = 'font-medium text-gray-800';
+          criterionName.textContent = formatCriterionName(point.criterion);
+          
+          const marksDisplay = document.createElement('div');
+          marksDisplay.className = 'flex items-center';
+          
+          const awardedMarks = document.createElement('span');
+          awardedMarks.className = point.awarded_mark === point.max_mark ? 'text-green-600 font-bold' : 'text-orange-600 font-bold';
+          awardedMarks.textContent = point.awarded_mark;
+          
+          const separator = document.createElement('span');
+          separator.className = 'mx-1 text-gray-400';
+          separator.textContent = '/';
+          
+          const maxMarkSpan = document.createElement('span');
+          maxMarkSpan.className = 'text-gray-600';
+          maxMarkSpan.textContent = point.max_mark;
+          
+          marksDisplay.appendChild(awardedMarks);
+          marksDisplay.appendChild(separator);
+          marksDisplay.appendChild(maxMarkSpan);
+          
+          header.appendChild(criterionName);
+          header.appendChild(marksDisplay);
+          
+          // Body with feedback
+          const body = document.createElement('div');
+          body.className = 'p-3';
+          
+          const feedback = document.createElement('p');
+          feedback.className = 'text-gray-700 mb-2';
+          feedback.textContent = point.feedback;
+          
+          body.appendChild(feedback);
+          
+          // Add explanation if marks were deducted
+          if (point.awarded_mark < point.max_mark && point.explanation) {
+            const explanationHeading = document.createElement('h5');
+            explanationHeading.className = 'text-sm font-medium text-gray-700 mt-3 mb-1';
+            explanationHeading.textContent = 'Why marks were deducted:';
+            
+            const explanation = document.createElement('p');
+            explanation.className = 'text-sm text-red-600 italic';
+            explanation.textContent = point.explanation;
+            
+            body.appendChild(explanationHeading);
+            body.appendChild(explanation);
+          }
+          
+          // Add to marking point
+          markingPoint.appendChild(header);
+          markingPoint.appendChild(body);
+          
+          // Add to container
+          detailedMarking.appendChild(markingPoint);
+        });
+        
+        // Show feedback, hide placeholder
+        feedbackContainer.classList.remove('hidden');
+        feedbackPlaceholder.classList.add('hidden');
+        
+        // Scroll to feedback
+        feedbackContainer.scrollIntoView({ behavior: 'smooth' });
+      }
+      
+      // Format criterion name (convert snake_case to Title Case)
+      function formatCriterionName(criterion) {
+        return criterion
+          .split('_')
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(' ');
+      }
+      
+      // Initialize
+      fetchQuestions();
+    });
+  </script>
+</body>
+</html>

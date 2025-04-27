@@ -1,0 +1,8 @@
+fastapi>=0.100.0
+uvicorn>=0.22.0
+pydantic>=2.0.0
+python-dotenv>=1.0.0
+openai>=1.0.0
+python-multipart>=0.0.5  # For handling file uploads
+google-cloud-vision>=3.4.0  # For OCR using Google Vision API
+Pillow>=9.0.0  # For image processing
