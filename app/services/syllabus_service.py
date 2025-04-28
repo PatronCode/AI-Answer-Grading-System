@@ -24,7 +24,7 @@ async def generate_syllabus_questions(
     
     try:
         # Ensure we have valid input
-        if not syllabus_text or len(syllabus_text.strip()) < 50:
+        if not syllabus_text or len(syllabus_text.strip()) < 10:
             raise ValueError("Syllabus text is too short. Please provide more detailed content.")
         
         if question_count < 1 or question_count > 20:
