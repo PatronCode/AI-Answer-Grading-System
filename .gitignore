@@ -88,4 +88,4 @@ wheels/
 *.egg
 
 # Test images
-.test_images
+test_images/
