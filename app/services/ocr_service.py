@@ -1,16 +1,21 @@
 import os
-import io
-from google.cloud import vision
+import cv2
+import numpy as np
+import re
+import pytesseract
+from PIL import Image
+from io import BytesIO
+from spellchecker import SpellChecker
 from fastapi import UploadFile
 from app.models.schemas import OCRResponse, FeedbackResponse
 from app.services.llm_service import generate_feedback
 
-# Set Google Cloud credentials
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = r"C:\Users\mozzam.suleman\Videos\My_project\handwritingocrproject-458118-3c328f893a41.json"
+# Set the path to the Tesseract executable
+pytesseract.pytesseract.tesseract_cmd = r"C:\Users\mozzam.suleman\AppData\Local\Programs\Tesseract-OCR\tesseract.exe"
 
 async def process_image(file: UploadFile, question_id: str, question=None, grade=False) -> OCRResponse:
     """
-    Process an uploaded image using Google Vision API to extract text.
+    Process an uploaded image using OCR to extract text.
     Optionally grade the extracted text if requested.
     
     Args:
@@ -26,18 +31,57 @@ async def process_image(file: UploadFile, question_id: str, question=None, grade
         # Read the image file
         contents = await file.read()
         
-        # Initialize Google Vision client
-        client = vision.ImageAnnotatorClient()
-        image = vision.Image(content=contents)
+        # Convert to OpenCV format
+        nparr = np.frombuffer(contents, np.uint8)
+        image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
         
-        # Perform document text detection (optimized for handwriting)
-        response = client.document_text_detection(image=image)
+        # Step 1: Preprocessing
+        # Convert to grayscale
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         
-        # Extract the full text
-        if response.error.message:
-            raise Exception(f'Google Vision API error: {response.error.message}')
-            
-        extracted_text = response.full_text_annotation.text
+        # Enhance contrast
+        gray = cv2.convertScaleAbs(gray, alpha=1.5, beta=0)
+        
+        # Apply adaptive thresholding
+        thresh = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_MEAN_C,
+                                      cv2.THRESH_BINARY_INV, 15, 10)
+        
+        # Dilate to connect text components
+        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (2,2))
+        dilate = cv2.dilate(thresh, kernel, iterations=1)
+        
+        # Step 2: OCR
+        custom_config = r'--oem 1 --psm 6'
+        raw_text = pytesseract.image_to_string(dilate, config=custom_config)
+        
+        # Step 3: Cleaning
+        # Remove duplicate lines
+        lines = raw_text.split('\n')
+        unique_lines = []
+        for line in lines:
+            clean_line = line.strip()
+            if clean_line and clean_line not in unique_lines:
+                unique_lines.append(clean_line)
+        
+        # Step 4: Spell correction
+        spell = SpellChecker()
+        final_lines = []
+        for line in unique_lines:
+            corrected_words = []
+            for word in re.findall(r'\b\w+\b', line):
+                if len(word) > 2:  # Only correct words longer than 2 characters
+                    corrected_word = spell.correction(word)
+                    if corrected_word:
+                        corrected_words.append(corrected_word)
+                    else:
+                        corrected_words.append(word)
+                else:
+                    corrected_words.append(word)
+            corrected_line = ' '.join(corrected_words)
+            final_lines.append(corrected_line)
+        
+        # Step 5: Final cleaned text
+        extracted_text = '\n'.join(final_lines)
         
         # Create response object
         response = OCRResponse(
