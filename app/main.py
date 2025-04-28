@@ -4,17 +4,20 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 import json
 import os
-from typing import Optional, List
+import uuid
+from typing import Optional, List, Dict, Any
 from datetime import datetime, timedelta
 
 from app.models.schemas import (
     AnswerSubmission, FeedbackResponse, OCRResponse, 
-    UserCreate, UserLogin, User, Token, UserFeedbackHistory
+    UserCreate, UserLogin, User, Token, UserFeedbackHistory,
+    SyllabusUpload, GeneratedQuestions, SyllabusQuestion
 )
 from app.services.llm_service import generate_feedback
 from app.services.ocr_service import process_image
 from app.services.db_service import db
 from app.services.auth_service import authenticate_user, create_access_token, get_current_user, register_user
+from app.services.syllabus_service import generate_syllabus_questions
 from fastapi.staticfiles import StaticFiles
 
 
@@ -66,10 +69,18 @@ async def serve_register():
 async def serve_dashboard():
     return FileResponse("app/static/dashboard.html")
 
+@app.get("/syllabus", include_in_schema=False)
+async def serve_syllabus():
+    return FileResponse("app/static/syllabus_upload.html")
+
 @app.on_event("startup")
 async def startup_db_client():
     # Connect to MongoDB
     await db.connect_to_mongodb()
+    
+    # Initialize app state
+    app.questions_data = {"subject": "Physics", "questions": []}
+    app.generated_questions = {}
     
     # Load questions from JSON file
     try:
@@ -154,17 +165,53 @@ async def get_feedback_history(current_user: User = Depends(get_current_active_u
     return UserFeedbackHistory(user_id=current_user.id, feedback_list=feedback_list)
 
 @app.get("/questions")
-async def get_questions():
-    """Return all available questions"""
-    return app.questions_data
+async def get_questions(current_user: User = Depends(get_current_active_user)):
+    """Return all available questions including system questions and user's syllabus questions"""
+    # Get user's syllabus questions from database
+    user_questions = await db.get_user_syllabus_questions(current_user.id)
+    
+    # Combine system questions with user's syllabus questions
+    # Convert SyllabusQuestion objects to dictionaries
+    user_questions_dicts = []
+    for q in user_questions:
+        user_questions_dicts.append({
+            "question_id": q.question_id,
+            "topic": q.topic,
+            "question": q.question,
+            "max_marks": q.max_marks,
+            "marking_scheme": q.marking_scheme,
+            "model_answer": q.model_answer
+        })
+    
+    combined_questions = {
+        "subject": app.questions_data["subject"],
+        "questions": app.questions_data["questions"] + user_questions_dicts
+    }
+    
+    return combined_questions
 
 @app.get("/questions/{question_id}")
-async def get_question(question_id: str):
+async def get_question(question_id: str, current_user: User = Depends(get_current_active_user)):
     """Get a specific question by ID"""
+    # Check system questions
     for question in app.questions_data["questions"]:
         if question["question_id"] == question_id:
             # Remove model_answer from the response for students
             question_for_student = {k: v for k, v in question.items() if k != "model_answer"}
+            return question_for_student
+    
+    # Check user's syllabus questions
+    user_questions = await db.get_user_syllabus_questions(current_user.id)
+    for q in user_questions:
+        if q.question_id == question_id:
+            # Convert SyllabusQuestion object to dictionary and remove model_answer
+            question_for_student = {
+                "question_id": q.question_id,
+                "topic": q.topic,
+                "question": q.question,
+                "max_marks": q.max_marks,
+                "marking_scheme": q.marking_scheme
+            }
             return question_for_student
     
     raise HTTPException(status_code=404, detail=f"Question {question_id} not found")
@@ -183,10 +230,28 @@ async def submit_answer(
     """
     # Find the question in our database
     question = None
+    
+    # Check system questions
     for q in app.questions_data["questions"]:
         if q["question_id"] == submission.question_id:
             question = q
             break
+    
+    # If not found in system questions, check user's syllabus questions
+    if not question:
+        user_questions = await db.get_user_syllabus_questions(current_user.id)
+        for q in user_questions:
+            if q.question_id == submission.question_id:
+                # Convert SyllabusQuestion object to dictionary
+                question = {
+                    "question_id": q.question_id,
+                    "topic": q.topic,
+                    "question": q.question,
+                    "max_marks": q.max_marks,
+                    "marking_scheme": q.marking_scheme,
+                    "model_answer": q.model_answer
+                }
+                break
     
     if not question:
         raise HTTPException(status_code=404, detail=f"Question {submission.question_id} not found")
@@ -227,10 +292,27 @@ async def submit_image(
     # Find the question in our database if grading is requested
     question = None
     if grade:
+        # Check system questions
         for q in app.questions_data["questions"]:
             if q["question_id"] == question_id:
                 question = q
                 break
+        
+        # If not found in system questions, check user's syllabus questions
+        if not question:
+            user_questions = await db.get_user_syllabus_questions(current_user.id)
+            for q in user_questions:
+                if q.question_id == question_id:
+                    # Convert SyllabusQuestion object to dictionary
+                    question = {
+                        "question_id": q.question_id,
+                        "topic": q.topic,
+                        "question": q.question,
+                        "max_marks": q.max_marks,
+                        "marking_scheme": q.marking_scheme,
+                        "model_answer": q.model_answer
+                    }
+                    break
         
         if not question:
             raise HTTPException(status_code=404, detail=f"Question {question_id} not found")
@@ -253,3 +335,127 @@ async def submit_image(
         await db.save_feedback(ocr_response.feedback)
     
     return ocr_response
+
+# Syllabus API routes
+@app.post("/api/syllabus/generate-questions", response_model=GeneratedQuestions)
+async def generate_questions_from_syllabus(
+    subject: str = Form(...),
+    question_count: int = Form(...),
+    syllabus_text: Optional[str] = Form(None),
+    file: Optional[UploadFile] = File(None),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Generate questions from a syllabus
+    - Takes syllabus text or file upload
+    - Uses LLM to generate questions based on the syllabus
+    - Returns generated questions
+    - Stores generated questions in memory for later saving
+    """
+    if not syllabus_text and not file:
+        raise HTTPException(status_code=400, detail="Either syllabus text or file must be provided")
+    
+    # If file is provided, extract text
+    if file:
+        try:
+            file_content = await file.read()
+            file_extension = file.filename.split('.')[-1].lower()
+            
+            if file_extension == 'txt':
+                syllabus_text = file_content.decode('utf-8')
+            elif file_extension in ['pdf', 'docx']:
+                # For simplicity, we'll just use the file name in this example
+                # In a real implementation, you would use a library to extract text from PDF/DOCX
+                syllabus_text = f"Content extracted from {file.filename}"
+            else:
+                raise HTTPException(
+                    status_code=400, 
+                    detail=f"Unsupported file format: {file_extension}. Please use TXT, PDF, or DOCX."
+                )
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Error processing file: {str(e)}")
+    
+    # Validate question count
+    try:
+        question_count = int(question_count)
+        if question_count < 1:
+            question_count = 1
+        elif question_count > 20:
+            question_count = 20
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Question count must be a number between 1 and 20")
+    
+    # Generate questions using LLM
+    try:
+        questions = await generate_syllabus_questions(subject, syllabus_text, question_count)
+        
+        # Store generated questions in memory for this user
+        session_id = str(uuid.uuid4())
+        app.generated_questions[session_id] = {
+            "user_id": current_user.id,
+            "subject": subject,
+            "questions": questions
+        }
+        
+        return GeneratedQuestions(
+            session_id=session_id,
+            subject=subject,
+            questions=questions
+        )
+    except HTTPException:
+        # Re-raise HTTP exceptions from the service
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to generate questions: {str(e)}")
+
+@app.post("/api/syllabus/save-questions")
+async def save_syllabus_questions(
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Save generated questions to the database
+    - Takes the most recently generated questions for the user
+    - Saves them to the database
+    - Returns success message
+    """
+    # Find the most recent session for this user
+    user_sessions = [
+        session_id for session_id, data in app.generated_questions.items()
+        if data["user_id"] == current_user.id
+    ]
+    
+    if not user_sessions:
+        raise HTTPException(status_code=404, detail="No generated questions found")
+    
+    # Get the most recent session (assuming the last one in the list)
+    session_id = user_sessions[-1]
+    session_data = app.generated_questions[session_id]
+    
+    # Save questions to database
+    try:
+        await db.save_syllabus_questions(
+            user_id=current_user.id,
+            subject=session_data["subject"],
+            questions=session_data["questions"]
+        )
+        
+        # Remove session data
+        del app.generated_questions[session_id]
+        
+        return {"message": "Questions saved successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to save questions: {str(e)}")
+
+@app.get("/api/syllabus/questions", response_model=List[SyllabusQuestion])
+async def get_syllabus_questions(
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Get all syllabus questions for the current user
+    - Returns all syllabus questions created by the user
+    """
+    try:
+        questions = await db.get_user_syllabus_questions(current_user.id)
+        return questions
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve syllabus questions: {str(e)}")

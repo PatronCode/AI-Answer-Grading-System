@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, EmailStr
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 from datetime import datetime
 
 # Authentication and User Models
@@ -76,3 +76,27 @@ class UserFeedbackHistory(BaseModel):
     """Model for user feedback history"""
     user_id: str = Field(description="ID of the user")
     feedback_list: List[FeedbackResponse] = Field(description="List of feedback responses for the user")
+
+# Syllabus Models
+class SyllabusUpload(BaseModel):
+    """Model for syllabus upload"""
+    subject: str = Field(description="Subject name")
+    syllabus_text: str = Field(description="Syllabus content")
+    question_count: int = Field(description="Number of questions to generate")
+
+class SyllabusQuestion(BaseModel):
+    """Model for a syllabus-generated question"""
+    question_id: str = Field(description="Unique ID for the question")
+    topic: str = Field(description="Topic of the question")
+    question: str = Field(description="The question text")
+    max_marks: int = Field(description="Maximum marks for the question")
+    marking_scheme: Dict[str, int] = Field(description="Marking scheme with criteria and marks")
+    model_answer: str = Field(description="Model answer for the question")
+    user_id: Optional[str] = Field(None, description="ID of the user who created the question")
+    created_at: Optional[datetime] = Field(None, description="Timestamp of when the question was created")
+
+class GeneratedQuestions(BaseModel):
+    """Model for generated questions response"""
+    session_id: str = Field(description="Session ID for the generated questions")
+    subject: str = Field(description="Subject name")
+    questions: List[SyllabusQuestion] = Field(description="List of generated questions")

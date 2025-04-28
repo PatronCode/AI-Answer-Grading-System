@@ -6,7 +6,7 @@ import logging
 from typing import List, Optional, Dict, Any
 
 from app.core.config import settings
-from app.models.schemas import UserInDB, FeedbackResponse
+from app.models.schemas import UserInDB, FeedbackResponse, SyllabusQuestion
 
 logger = logging.getLogger(__name__)
 
@@ -88,6 +88,46 @@ class Database:
             return feedback_list
         except Exception as e:
             logger.error(f"Error retrieving user feedback history: {e}")
+            return []
+    
+    # Syllabus questions operations
+    async def save_syllabus_questions(self, user_id: str, subject: str, questions: List[SyllabusQuestion]) -> bool:
+        """Save syllabus questions to the database"""
+        try:
+            # Prepare questions for database
+            for question in questions:
+                # Add user_id and created_at
+                question.user_id = user_id
+                question.created_at = datetime.utcnow()
+                
+                # Convert to dict for MongoDB
+                question_dict = question.model_dump()
+                
+                # Convert user_id to ObjectId
+                question_dict["user_id"] = ObjectId(user_id)
+                
+                # Insert into database
+                await self.db.syllabus_questions.insert_one(question_dict)
+            
+            return True
+        except Exception as e:
+            logger.error(f"Error saving syllabus questions: {e}")
+            return False
+    
+    async def get_user_syllabus_questions(self, user_id: str) -> List[SyllabusQuestion]:
+        """Get all syllabus questions for a user"""
+        try:
+            cursor = self.db.syllabus_questions.find({"user_id": ObjectId(user_id)}).sort("created_at", -1)
+            questions_list = []
+            async for question in cursor:
+                question["id"] = str(question["_id"])
+                # Convert ObjectId to string for user_id
+                if question.get("user_id"):
+                    question["user_id"] = str(question["user_id"])
+                questions_list.append(SyllabusQuestion(**question))
+            return questions_list
+        except Exception as e:
+            logger.error(f"Error retrieving user syllabus questions: {e}")
             return []
 
 # Create a database instance
