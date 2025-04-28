@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - AI Exam Marker</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Material Icons -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+  <!-- Material Components Web -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/material-components-web/14.0.0/material-components-web.min.css" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/material-components-web/14.0.0/material-components-web.min.js"></script>
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+  
+  <style>
+    body {
+      font-family: 'Roboto', sans-serif;
+      background-color: #f5f5f5;
+    }
+    .mdc-card {
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    .mdc-button {
+      text-transform: none;
+      font-weight: 500;
+    }
+    .loader {
+      border: 4px solid #f3f3f3;
+      border-radius: 50%;
+      border-top: 4px solid #3498db;
+      width: 30px;
+      height: 30px;
+      animation: spin 1s linear infinite;
+      display: inline-block;
+      margin-right: 10px;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+  <!-- Navigation Bar -->
+  <nav class="bg-white shadow-md">
+    <div class="container mx-auto px-4 py-3">
+      <div class="flex justify-between items-center">
+        <div class="flex items-center">
+          <h1 class="text-xl font-bold text-gray-800">AI Exam Marking System</h1>
+        </div>
+        <div class="flex items-center space-x-4">
+          <span id="user-name" class="text-gray-700">Loading...</span>
+          <button id="logout-button" class="flex items-center text-gray-600 hover:text-gray-800">
+            <span class="material-icons mr-1">logout</span>
+            Logout
+          </button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container mx-auto px-4 py-8">
+    <!-- Header -->
+    <header class="mb-8">
+      <h1 class="text-2xl font-bold text-gray-800">Your Dashboard</h1>
+      <p class="text-gray-600 mt-2">View your progress and previous feedback</p>
+    </header>
+
+    <!-- Main Content -->
+    <div class="grid grid-cols-1 md:grid-cols-12 gap-8">
+      <!-- Sidebar with Quick Links -->
+      <div class="md:col-span-3">
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+          <h2 class="text-lg font-semibold text-gray-800 mb-4">Quick Links</h2>
+          <ul class="space-y-2">
+            <li>
+              <a href="/" class="flex items-center text-blue-600 hover:text-blue-800">
+                <span class="material-icons mr-2 text-sm">home</span>
+                Home
+              </a>
+            </li>
+            <li>
+              <a href="/dashboard" class="flex items-center text-blue-600 hover:text-blue-800 font-medium">
+                <span class="material-icons mr-2 text-sm">dashboard</span>
+                Dashboard
+              </a>
+            </li>
+            <li>
+              <a href="/" class="flex items-center text-blue-600 hover:text-blue-800">
+                <span class="material-icons mr-2 text-sm">question_answer</span>
+                Answer Questions
+              </a>
+            </li>
+          </ul>
+        </div>
+        
+        <!-- Stats Card -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+          <h2 class="text-lg font-semibold text-gray-800 mb-4">Your Stats</h2>
+          <div class="space-y-4">
+            <div>
+              <p class="text-gray-600 mb-1">Total Submissions</p>
+              <p id="total-submissions" class="text-2xl font-bold text-gray-800">-</p>
+            </div>
+            <div>
+              <p class="text-gray-600 mb-1">Average Score</p>
+              <p id="average-score" class="text-2xl font-bold text-blue-600">-</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Feedback History -->
+      <div class="md:col-span-9">
+        <div class="bg-white rounded-lg shadow-md p-6">
+          <div class="flex items-center justify-between mb-6">
+            <h2 class="text-xl font-semibold text-gray-800">Your Feedback History</h2>
+            <button id="refresh-button" class="flex items-center text-blue-600 hover:text-blue-800">
+              <span class="material-icons mr-1">refresh</span>
+              Refresh
+            </button>
+          </div>
+          
+          <!-- Loading State -->
+          <div id="loading-state" class="py-8 text-center">
+            <div class="loader mx-auto mb-4"></div>
+            <p class="text-gray-600">Loading your feedback history...</p>
+          </div>
+          
+          <!-- Empty State -->
+          <div id="empty-state" class="py-8 text-center hidden">
+            <span class="material-icons text-gray-400 text-5xl mb-4">history</span>
+            <h3 class="text-lg font-medium text-gray-700 mb-2">No Feedback Yet</h3>
+            <p class="text-gray-500 mb-4">You haven't submitted any answers for grading yet.</p>
+            <a href="/" class="inline-flex items-center bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition duration-300">
+              <span class="material-icons mr-2">edit</span>
+              Answer Questions
+            </a>
+          </div>
+          
+          <!-- Feedback List -->
+          <div id="feedback-list" class="space-y-6 hidden">
+            <!-- Feedback items will be added here dynamically -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Feedback Detail Modal -->
+  <div id="feedback-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-lg shadow-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+      <div class="p-6">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-xl font-semibold text-gray-800">Feedback Details</h2>
+          <button id="close-modal" class="text-gray-500 hover:text-gray-700">
+            <span class="material-icons">close</span>
+          </button>
+        </div>
+        
+        <div id="modal-content">
+          <!-- Modal content will be added here dynamically -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const API_BASE_URL = window.location.origin;
+      const userNameElement = document.getElementById('user-name');
+      const logoutButton = document.getElementById('logout-button');
+      const refreshButton = document.getElementById('refresh-button');
+      const loadingState = document.getElementById('loading-state');
+      const emptyState = document.getElementById('empty-state');
+      const feedbackList = document.getElementById('feedback-list');
+      const totalSubmissions = document.getElementById('total-submissions');
+      const averageScore = document.getElementById('average-score');
+      const feedbackModal = document.getElementById('feedback-modal');
+      const closeModal = document.getElementById('close-modal');
+      const modalContent = document.getElementById('modal-content');
+      
+      // Check if user is logged in
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        window.location.href = '/login';
+        return;
+      }
+      
+      // Handle logout
+      logoutButton.addEventListener('click', function() {
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('token_type');
+        window.location.href = '/login';
+      });
+      
+      // Close modal
+      closeModal.addEventListener('click', function() {
+        feedbackModal.classList.add('hidden');
+      });
+      
+      // Close modal when clicking outside
+      feedbackModal.addEventListener('click', function(e) {
+        if (e.target === feedbackModal) {
+          feedbackModal.classList.add('hidden');
+        }
+      });
+      
+      // Fetch user profile
+      async function fetchUserProfile() {
+        try {
+          const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          
+          if (!response.ok) {
+            throw new Error('Failed to fetch user profile');
+          }
+          
+          const user = await response.json();
+          userNameElement.textContent = user.student_name;
+        } catch (error) {
+          console.error('Error fetching user profile:', error);
+          userNameElement.textContent = 'User';
+        }
+      }
+      
+      // Fetch feedback history
+      async function fetchFeedbackHistory() {
+        loadingState.classList.remove('hidden');
+        emptyState.classList.add('hidden');
+        feedbackList.classList.add('hidden');
+        
+        try {
+          const response = await fetch(`${API_BASE_URL}/api/feedback/history`, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          
+          if (!response.ok) {
+            throw new Error('Failed to fetch feedback history');
+          }
+          
+          const data = await response.json();
+          
+          // Update stats
+          totalSubmissions.textContent = data.feedback_list.length;
+          
+          if (data.feedback_list.length > 0) {
+            // Calculate average score
+            const totalScore = data.feedback_list.reduce((sum, feedback) => {
+              return sum + (feedback.total_marks_awarded / feedback.total_marks_available) * 100;
+            }, 0);
+            const avg = totalScore / data.feedback_list.length;
+            averageScore.textContent = `${avg.toFixed(1)}%`;
+            
+            // Render feedback list
+            renderFeedbackList(data.feedback_list);
+            loadingState.classList.add('hidden');
+            emptyState.classList.add('hidden');
+            feedbackList.classList.remove('hidden');
+          } else {
+            // Show empty state
+            loadingState.classList.add('hidden');
+            emptyState.classList.remove('hidden');
+            feedbackList.classList.add('hidden');
+            
+            totalSubmissions.textContent = '0';
+            averageScore.textContent = '-';
+          }
+        } catch (error) {
+          console.error('Error fetching feedback history:', error);
+          loadingState.classList.add('hidden');
+          emptyState.classList.remove('hidden');
+          feedbackList.classList.add('hidden');
+        }
+      }
+      
+      // Render feedback list
+      function renderFeedbackList(feedbackItems) {
+        feedbackList.innerHTML = '';
+        
+        feedbackItems.forEach((feedback, index) => {
+          const date = new Date(feedback.created_at);
+          const formattedDate = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+          
+          const feedbackItem = document.createElement('div');
+          feedbackItem.className = 'border border-gray-200 rounded-lg overflow-hidden';
+          
+          // Header
+          const header = document.createElement('div');
+          header.className = 'bg-gray-50 p-4 border-b border-gray-200 flex justify-between items-center';
+          
+          const questionInfo = document.createElement('div');
+          questionInfo.innerHTML = `
+            <h3 class="font-medium text-gray-800">Question ${feedback.question_id}</h3>
+            <p class="text-sm text-gray-600">${formattedDate}</p>
+          `;
+          
+          const scoreDisplay = document.createElement('div');
+          scoreDisplay.className = 'flex items-center';
+          
+          const scorePercentage = (feedback.total_marks_awarded / feedback.total_marks_available) * 100;
+          const scoreColor = scorePercentage >= 70 ? 'text-green-600' : (scorePercentage >= 40 ? 'text-orange-600' : 'text-red-600');
+          
+          scoreDisplay.innerHTML = `
+            <span class="${scoreColor} font-bold text-xl">${feedback.total_marks_awarded}</span>
+            <span class="mx-1 text-gray-400">/</span>
+            <span class="text-gray-600">${feedback.total_marks_available}</span>
+          `;
+          
+          header.appendChild(questionInfo);
+          header.appendChild(scoreDisplay);
+          
+          // Body
+          const body = document.createElement('div');
+          body.className = 'p-4';
+          
+          body.innerHTML = `
+            <p class="text-gray-700 mb-4">${feedback.overall_feedback}</p>
+            <button class="view-details-btn flex items-center text-blue-600 hover:text-blue-800" data-index="${index}">
+              <span class="material-icons mr-1 text-sm">visibility</span>
+              View Detailed Feedback
+            </button>
+          `;
+          
+          feedbackItem.appendChild(header);
+          feedbackItem.appendChild(body);
+          feedbackList.appendChild(feedbackItem);
+          
+          // Store feedback data for modal
+          feedbackItem.dataset.feedback = JSON.stringify(feedback);
+        });
+        
+        // Add event listeners to view details buttons
+        document.querySelectorAll('.view-details-btn').forEach(button => {
+          button.addEventListener('click', function() {
+            const feedbackItem = this.closest('div[data-feedback]');
+            const feedback = JSON.parse(feedbackItem.dataset.feedback);
+            showFeedbackModal(feedback);
+          });
+        });
+      }
+      
+      // Show feedback modal
+      function showFeedbackModal(feedback) {
+        modalContent.innerHTML = '';
+        
+        // Question info
+        const questionInfo = document.createElement('div');
+        questionInfo.className = 'mb-6';
+        questionInfo.innerHTML = `
+          <h3 class="font-medium text-gray-800 mb-2">Question ${feedback.question_id}</h3>
+          <div class="flex items-center mb-4">
+            <span class="text-blue-600 font-medium">Score:</span>
+            <span class="ml-2 font-bold ${feedback.total_marks_awarded === feedback.total_marks_available ? 'text-green-600' : 'text-orange-600'}">${feedback.total_marks_awarded}/${feedback.total_marks_available}</span>
+          </div>
+          <div class="p-4 bg-gray-50 rounded-md">
+            <h4 class="font-medium text-gray-800 mb-2">Overall Feedback:</h4>
+            <p class="text-gray-700">${feedback.overall_feedback}</p>
+          </div>
+        `;
+        
+        // Detailed marking
+        const detailedMarking = document.createElement('div');
+        detailedMarking.className = 'mt-6';
+        detailedMarking.innerHTML = `
+          <h3 class="font-medium text-gray-800 mb-3">Detailed Marking:</h3>
+          <div class="space-y-4" id="modal-detailed-marking"></div>
+        `;
+        
+        modalContent.appendChild(questionInfo);
+        modalContent.appendChild(detailedMarking);
+        
+        // Add detailed marking points
+        const modalDetailedMarking = document.getElementById('modal-detailed-marking');
+        feedback.detailed_marking.forEach(point => {
+          const markingPoint = document.createElement('div');
+          markingPoint.className = 'border border-gray-200 rounded-md overflow-hidden';
+          
+          // Header with criterion and marks
+          const header = document.createElement('div');
+          header.className = 'flex justify-between items-center p-3 bg-gray-50 border-b border-gray-200';
+          
+          const criterionName = document.createElement('h4');
+          criterionName.className = 'font-medium text-gray-800';
+          criterionName.textContent = formatCriterionName(point.criterion);
+          
+          const marksDisplay = document.createElement('div');
+          marksDisplay.className = 'flex items-center';
+          
+          const awardedMarks = document.createElement('span');
+          awardedMarks.className = point.awarded_mark === point.max_mark ? 'text-green-600 font-bold' : 'text-orange-600 font-bold';
+          awardedMarks.textContent = point.awarded_mark;
+          
+          const separator = document.createElement('span');
+          separator.className = 'mx-1 text-gray-400';
+          separator.textContent = '/';
+          
+          const maxMarkSpan = document.createElement('span');
+          maxMarkSpan.className = 'text-gray-600';
+          maxMarkSpan.textContent = point.max_mark;
+          
+          marksDisplay.appendChild(awardedMarks);
+          marksDisplay.appendChild(separator);
+          marksDisplay.appendChild(maxMarkSpan);
+          
+          header.appendChild(criterionName);
+          header.appendChild(marksDisplay);
+          
+          // Body with feedback
+          const body = document.createElement('div');
+          body.className = 'p-3';
+          
+          const feedback = document.createElement('p');
+          feedback.className = 'text-gray-700 mb-2';
+          feedback.textContent = point.feedback;
+          
+          body.appendChild(feedback);
+          
+          // Add explanation if marks were deducted
+          if (point.awarded_mark < point.max_mark && point.explanation) {
+            const explanationHeading = document.createElement('h5');
+            explanationHeading.className = 'text-sm font-medium text-gray-700 mt-3 mb-1';
+            explanationHeading.textContent = 'Why marks were deducted:';
+            
+            const explanation = document.createElement('p');
+            explanation.className = 'text-sm text-red-600 italic';
+            explanation.textContent = point.explanation;
+            
+            body.appendChild(explanationHeading);
+            body.appendChild(explanation);
+          }
+          
+          // Add to marking point
+          markingPoint.appendChild(header);
+          markingPoint.appendChild(body);
+          
+          // Add to container
+          modalDetailedMarking.appendChild(markingPoint);
+        });
+        
+        // Show modal
+        feedbackModal.classList.remove('hidden');
+      }
+      
+      // Format criterion name (convert snake_case to Title Case)
+      function formatCriterionName(criterion) {
+        return criterion
+          .split('_')
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(' ');
+      }
+      
+      // Refresh button
+      refreshButton.addEventListener('click', fetchFeedbackHistory);
+      
+      // Initialize
+      fetchUserProfile();
+      fetchFeedbackHistory();
+    });
+  </script>
+</body>
+</html>

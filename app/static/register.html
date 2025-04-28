@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Register - AI Exam Marker</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Material Icons -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+  
+  <style>
+    body {
+      font-family: 'Roboto', sans-serif;
+      background-color: #f5f5f5;
+    }
+    .loader {
+      border: 4px solid #f3f3f3;
+      border-radius: 50%;
+      border-top: 4px solid #3498db;
+      width: 20px;
+      height: 20px;
+      animation: spin 1s linear infinite;
+      display: inline-block;
+      margin-right: 10px;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+  <div class="container max-w-md mx-auto px-4 py-8">
+    <!-- Registration Form Card -->
+    <div class="bg-white rounded-lg shadow-md p-8">
+      <!-- Header -->
+      <div class="text-center mb-8">
+        <h1 class="text-2xl font-bold text-gray-800">AI Exam Marking System</h1>
+        <p class="text-gray-600 mt-2">Create a new account</p>
+      </div>
+      
+      <!-- Alert for errors -->
+      <div id="error-alert" class="hidden mb-6 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
+        <span id="error-message">Error message here</span>
+      </div>
+      
+      <!-- Registration Form -->
+      <form id="register-form" class="space-y-6">
+        <!-- Student Name Field -->
+        <div>
+          <label for="student-name" class="block text-gray-700 mb-2">Full Name</label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
+              <span class="material-icons text-sm">person</span>
+            </span>
+            <input type="text" id="student-name" name="student-name" class="w-full pl-10 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="John Doe" required>
+          </div>
+        </div>
+        
+        <!-- Email Field -->
+        <div>
+          <label for="email" class="block text-gray-700 mb-2">Email Address</label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
+              <span class="material-icons text-sm">email</span>
+            </span>
+            <input type="email" id="email" name="email" class="w-full pl-10 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="your.email@example.com" required>
+          </div>
+        </div>
+        
+        <!-- Password Field -->
+        <div>
+          <label for="password" class="block text-gray-700 mb-2">Password</label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
+              <span class="material-icons text-sm">lock</span>
+            </span>
+            <input type="password" id="password" name="password" class="w-full pl-10 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="••••••••" required minlength="6">
+            <p class="mt-1 text-xs text-gray-500">Password must be at least 6 characters long</p>
+          </div>
+        </div>
+        
+        <!-- Confirm Password Field -->
+        <div>
+          <label for="confirm-password" class="block text-gray-700 mb-2">Confirm Password</label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
+              <span class="material-icons text-sm">lock</span>
+            </span>
+            <input type="password" id="confirm-password" name="confirm-password" class="w-full pl-10 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="••••••••" required minlength="6">
+          </div>
+        </div>
+        
+        <!-- Register Button -->
+        <button type="submit" id="register-button" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-md transition duration-300 flex items-center justify-center">
+          <span class="material-icons mr-2">person_add</span>
+          Create Account
+        </button>
+        
+        <!-- Login Link -->
+        <div class="text-center mt-4">
+          <p class="text-gray-600">
+            Already have an account? 
+            <a href="/login" class="text-blue-600 hover:text-blue-800 font-medium">Login</a>
+          </p>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const API_BASE_URL = window.location.origin;
+      const registerForm = document.getElementById('register-form');
+      const registerButton = document.getElementById('register-button');
+      const errorAlert = document.getElementById('error-alert');
+      const errorMessage = document.getElementById('error-message');
+      
+      // Handle form submission
+      registerForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        // Get form data
+        const studentName = document.getElementById('student-name').value;
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        const confirmPassword = document.getElementById('confirm-password').value;
+        
+        // Validate passwords match
+        if (password !== confirmPassword) {
+          errorMessage.textContent = 'Passwords do not match';
+          errorAlert.classList.remove('hidden');
+          return;
+        }
+        
+        // Validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+          errorMessage.textContent = 'Please enter a valid email address';
+          errorAlert.classList.remove('hidden');
+          return;
+        }
+        
+        // Validate password length
+        if (password.length < 6) {
+          errorMessage.textContent = 'Password must be at least 6 characters long';
+          errorAlert.classList.remove('hidden');
+          return;
+        }
+        
+        // Disable button and show loading state
+        registerButton.disabled = true;
+        registerButton.innerHTML = '<div class="loader"></div> Creating account...';
+        
+        // Hide any previous errors
+        errorAlert.classList.add('hidden');
+        
+        try {
+          const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              email: email,
+              password: password,
+              student_name: studentName
+            })
+          });
+          
+          // Check if response is ok before parsing JSON
+          if (!response.ok) {
+            // Try to parse error response as JSON
+            try {
+              const errorData = await response.json();
+              throw new Error(errorData.detail || 'Registration failed. Please try again.');
+            } catch (jsonError) {
+              // If JSON parsing fails, use status text
+              throw new Error(`Registration failed: ${response.statusText}`);
+            }
+          }
+          
+          const data = await response.json();
+          
+          // Redirect to login page with success message
+          window.location.href = '/login?registered=true';
+        } catch (error) {
+          // Show error message
+          errorMessage.textContent = error.message;
+          errorAlert.classList.remove('hidden');
+          
+          // Reset button
+          registerButton.disabled = false;
+          registerButton.innerHTML = '<span class="material-icons mr-2">person_add</span> Create Account';
+        }
+      });
+    });
+  </script>
+</body>
+</html>

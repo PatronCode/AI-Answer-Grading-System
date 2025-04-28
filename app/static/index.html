@@ -44,12 +44,47 @@
   </style>
 </head>
 <body class="bg-gray-100 min-h-screen">
+  <!-- Navigation Bar -->
+  <nav class="bg-white shadow-md">
+    <div class="container mx-auto px-4 py-3">
+      <div class="flex justify-between items-center">
+        <div class="flex items-center">
+          <h1 class="text-xl font-bold text-gray-800">AI Exam Marking System</h1>
+        </div>
+        <div id="nav-auth-section" class="flex items-center space-x-4">
+          <!-- This section will be populated dynamically based on auth status -->
+          <div id="logged-out-nav" class="flex items-center space-x-4">
+            <a href="/login" class="text-blue-600 hover:text-blue-800">Login</a>
+            <a href="/register" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md">Register</a>
+          </div>
+          <div id="logged-in-nav" class="hidden flex items-center space-x-4">
+            <span id="user-name" class="text-gray-700">User</span>
+            <a href="/dashboard" class="flex items-center text-blue-600 hover:text-blue-800">
+              <span class="material-icons mr-1 text-sm">dashboard</span>
+              Dashboard
+            </a>
+            <button id="logout-button" class="flex items-center text-gray-600 hover:text-gray-800">
+              <span class="material-icons mr-1 text-sm">logout</span>
+              Logout
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
   <div class="container mx-auto px-4 py-8">
     <!-- Header -->
     <header class="text-center mb-10">
       <h1 class="text-3xl font-bold text-gray-800">AI Exam Marking System</h1>
       <p class="text-gray-600 mt-2">Get instant feedback on your answers using AI</p>
     </header>
+
+    <!-- Auth Required Alert -->
+    <div id="auth-required-alert" class="hidden mb-8 bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded relative">
+      <strong class="font-bold">Authentication Required!</strong>
+      <span class="block sm:inline"> Please <a href="/login" class="underline">login</a> or <a href="/register" class="underline">register</a> to submit answers and receive feedback.</span>
+    </div>
 
     <!-- Main Content -->
     <div class="grid grid-cols-1 md:grid-cols-12 gap-8">
@@ -234,7 +269,14 @@
   <script>
     document.addEventListener('DOMContentLoaded', function() {
       // API endpoint
-      const API_BASE_URL = 'http://127.0.0.1:8000';
+      const API_BASE_URL = window.location.origin;
+      
+      // Auth elements
+      const loggedOutNav = document.getElementById('logged-out-nav');
+      const loggedInNav = document.getElementById('logged-in-nav');
+      const userName = document.getElementById('user-name');
+      const logoutButton = document.getElementById('logout-button');
+      const authRequiredAlert = document.getElementById('auth-required-alert');
       
       // Tab elements
       const textTab = document.getElementById('text-tab');
@@ -626,7 +668,87 @@
           .join(' ');
       }
       
+      // Check authentication status
+      function checkAuthStatus() {
+        const token = localStorage.getItem('access_token');
+        
+        if (token) {
+          // User is logged in
+          loggedOutNav.classList.add('hidden');
+          loggedInNav.classList.remove('hidden');
+          authRequiredAlert.classList.add('hidden');
+          
+          // Fetch user profile
+          fetchUserProfile(token);
+          
+          // Add authorization header to API requests
+          addAuthorizationHeader(token);
+        } else {
+          // User is not logged in
+          loggedOutNav.classList.remove('hidden');
+          loggedInNav.classList.add('hidden');
+          authRequiredAlert.classList.remove('hidden');
+          
+          // Disable submit buttons
+          submitButton.disabled = true;
+          imageSubmitButton.disabled = true;
+        }
+      }
+      
+      // Fetch user profile
+      async function fetchUserProfile(token) {
+        try {
+          const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          
+          if (!response.ok) {
+            throw new Error('Failed to fetch user profile');
+          }
+          
+          const user = await response.json();
+          userName.textContent = user.student_name;
+        } catch (error) {
+          console.error('Error fetching user profile:', error);
+          // If there's an error fetching the profile, the token might be invalid
+          // So log the user out
+          handleLogout();
+        }
+      }
+      
+      // Add authorization header to API requests
+      function addAuthorizationHeader(token) {
+        // Override fetch to add authorization header to all requests
+        const originalFetch = window.fetch;
+        window.fetch = function(url, options = {}) {
+          // Only add the header for API requests to our backend
+          if (url.toString().startsWith(API_BASE_URL)) {
+            options.headers = options.headers || {};
+            
+            // Don't override if Authorization is already set
+            if (!options.headers.Authorization && !options.headers.authorization) {
+              options.headers.Authorization = `Bearer ${token}`;
+            }
+          }
+          
+          return originalFetch(url, options);
+        };
+      }
+      
+      // Handle logout
+      function handleLogout() {
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('token_type');
+        window.location.reload();
+      }
+      
+      // Add logout event listener
+      logoutButton.addEventListener('click', handleLogout);
+      
       // Initialize
+      checkAuthStatus();
       fetchQuestions();
     });
   </script>
