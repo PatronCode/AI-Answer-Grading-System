@@ -66,7 +66,7 @@
     <!-- Header -->
     <header class="mb-8">
       <h1 class="text-2xl font-bold text-gray-800">Your Dashboard</h1>
-      <p class="text-gray-600 mt-2">View your progress and previous feedback</p>
+      <p class="text-gray-600 mt-2">View your progress, previous feedback, and syllabus questions</p>
     </header>
 
     <!-- Main Content -->
@@ -94,6 +94,12 @@
                 Answer Questions
               </a>
             </li>
+            <li>
+              <a href="/syllabus" class="flex items-center text-blue-600 hover:text-blue-800">
+                <span class="material-icons mr-2 text-sm">upload_file</span>
+                Upload Syllabus
+              </a>
+            </li>
           </ul>
         </div>
         
@@ -113,25 +119,34 @@
         </div>
       </div>
       
-      <!-- Feedback History -->
+      <!-- Main Content Area -->
       <div class="md:col-span-9">
-        <div class="bg-white rounded-lg shadow-md p-6">
+        <!-- Tabs -->
+        <div class="mb-6 border-b border-gray-200">
+          <div class="flex">
+            <button id="feedback-tab" class="px-4 py-2 border-b-2 border-blue-500 text-blue-600 font-medium">Feedback History</button>
+            <button id="syllabus-tab" class="px-4 py-2 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium">Syllabus Questions</button>
+          </div>
+        </div>
+        
+        <!-- Feedback History Tab -->
+        <div id="feedback-content" class="bg-white rounded-lg shadow-md p-6">
           <div class="flex items-center justify-between mb-6">
             <h2 class="text-xl font-semibold text-gray-800">Your Feedback History</h2>
-            <button id="refresh-button" class="flex items-center text-blue-600 hover:text-blue-800">
+            <button id="refresh-feedback-button" class="flex items-center text-blue-600 hover:text-blue-800">
               <span class="material-icons mr-1">refresh</span>
               Refresh
             </button>
           </div>
           
           <!-- Loading State -->
-          <div id="loading-state" class="py-8 text-center">
+          <div id="feedback-loading" class="py-8 text-center">
             <div class="loader mx-auto mb-4"></div>
             <p class="text-gray-600">Loading your feedback history...</p>
           </div>
           
           <!-- Empty State -->
-          <div id="empty-state" class="py-8 text-center hidden">
+          <div id="feedback-empty" class="py-8 text-center hidden">
             <span class="material-icons text-gray-400 text-5xl mb-4">history</span>
             <h3 class="text-lg font-medium text-gray-700 mb-2">No Feedback Yet</h3>
             <p class="text-gray-500 mb-4">You haven't submitted any answers for grading yet.</p>
@@ -144,6 +159,45 @@
           <!-- Feedback List -->
           <div id="feedback-list" class="space-y-6 hidden">
             <!-- Feedback items will be added here dynamically -->
+          </div>
+        </div>
+        
+        <!-- Syllabus Questions Tab -->
+        <div id="syllabus-content" class="bg-white rounded-lg shadow-md p-6 hidden">
+          <div class="flex items-center justify-between mb-6">
+            <h2 class="text-xl font-semibold text-gray-800">Your Syllabus Questions</h2>
+            <div class="flex items-center space-x-3">
+              <button id="refresh-syllabus-button" class="flex items-center text-blue-600 hover:text-blue-800">
+                <span class="material-icons mr-1">refresh</span>
+                Refresh
+              </button>
+              <a href="/syllabus" class="flex items-center bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition duration-300">
+                <span class="material-icons mr-2">add</span>
+                Create New
+              </a>
+            </div>
+          </div>
+          
+          <!-- Loading State -->
+          <div id="syllabus-loading" class="py-8 text-center">
+            <div class="loader mx-auto mb-4"></div>
+            <p class="text-gray-600">Loading your syllabus questions...</p>
+          </div>
+          
+          <!-- Empty State -->
+          <div id="syllabus-empty" class="py-8 text-center hidden">
+            <span class="material-icons text-gray-400 text-5xl mb-4">school</span>
+            <h3 class="text-lg font-medium text-gray-700 mb-2">No Syllabus Questions Yet</h3>
+            <p class="text-gray-500 mb-4">You haven't created any questions from your syllabus yet.</p>
+            <a href="/syllabus" class="inline-flex items-center bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition duration-300">
+              <span class="material-icons mr-2">upload_file</span>
+              Upload Syllabus
+            </a>
+          </div>
+          
+          <!-- Syllabus Questions List -->
+          <div id="syllabus-list" class="space-y-6 hidden">
+            <!-- Syllabus questions will be added here dynamically -->
           </div>
         </div>
       </div>
@@ -173,12 +227,30 @@
       const API_BASE_URL = window.location.origin;
       const userNameElement = document.getElementById('user-name');
       const logoutButton = document.getElementById('logout-button');
-      const refreshButton = document.getElementById('refresh-button');
-      const loadingState = document.getElementById('loading-state');
-      const emptyState = document.getElementById('empty-state');
+      
+      // Tab elements
+      const feedbackTab = document.getElementById('feedback-tab');
+      const syllabusTab = document.getElementById('syllabus-tab');
+      const feedbackContent = document.getElementById('feedback-content');
+      const syllabusContent = document.getElementById('syllabus-content');
+      
+      // Feedback elements
+      const refreshFeedbackButton = document.getElementById('refresh-feedback-button');
+      const feedbackLoading = document.getElementById('feedback-loading');
+      const feedbackEmpty = document.getElementById('feedback-empty');
       const feedbackList = document.getElementById('feedback-list');
+      
+      // Syllabus elements
+      const refreshSyllabusButton = document.getElementById('refresh-syllabus-button');
+      const syllabusLoading = document.getElementById('syllabus-loading');
+      const syllabusEmpty = document.getElementById('syllabus-empty');
+      const syllabusList = document.getElementById('syllabus-list');
+      
+      // Stats elements
       const totalSubmissions = document.getElementById('total-submissions');
       const averageScore = document.getElementById('average-score');
+      
+      // Modal elements
       const feedbackModal = document.getElementById('feedback-modal');
       const closeModal = document.getElementById('close-modal');
       const modalContent = document.getElementById('modal-content');
@@ -189,6 +261,30 @@
         window.location.href = '/login';
         return;
       }
+      
+      // Tab switching
+      feedbackTab.addEventListener('click', function() {
+        feedbackTab.classList.add('border-blue-500', 'text-blue-600');
+        feedbackTab.classList.remove('border-transparent', 'text-gray-500');
+        syllabusTab.classList.remove('border-blue-500', 'text-blue-600');
+        syllabusTab.classList.add('border-transparent', 'text-gray-500');
+        feedbackContent.classList.remove('hidden');
+        syllabusContent.classList.add('hidden');
+      });
+      
+      syllabusTab.addEventListener('click', function() {
+        syllabusTab.classList.add('border-blue-500', 'text-blue-600');
+        syllabusTab.classList.remove('border-transparent', 'text-gray-500');
+        feedbackTab.classList.remove('border-blue-500', 'text-blue-600');
+        feedbackTab.classList.add('border-transparent', 'text-gray-500');
+        syllabusContent.classList.remove('hidden');
+        feedbackContent.classList.add('hidden');
+        
+        // Load syllabus questions if not already loaded
+        if (syllabusList.children.length === 0) {
+          fetchSyllabusQuestions();
+        }
+      });
       
       // Handle logout
       logoutButton.addEventListener('click', function() {
@@ -232,8 +328,8 @@
       
       // Fetch feedback history
       async function fetchFeedbackHistory() {
-        loadingState.classList.remove('hidden');
-        emptyState.classList.add('hidden');
+        feedbackLoading.classList.remove('hidden');
+        feedbackEmpty.classList.add('hidden');
         feedbackList.classList.add('hidden');
         
         try {
@@ -262,13 +358,13 @@
             
             // Render feedback list
             renderFeedbackList(data.feedback_list);
-            loadingState.classList.add('hidden');
-            emptyState.classList.add('hidden');
+            feedbackLoading.classList.add('hidden');
+            feedbackEmpty.classList.add('hidden');
             feedbackList.classList.remove('hidden');
           } else {
             // Show empty state
-            loadingState.classList.add('hidden');
-            emptyState.classList.remove('hidden');
+            feedbackLoading.classList.add('hidden');
+            feedbackEmpty.classList.remove('hidden');
             feedbackList.classList.add('hidden');
             
             totalSubmissions.textContent = '0';
@@ -276,9 +372,48 @@
           }
         } catch (error) {
           console.error('Error fetching feedback history:', error);
-          loadingState.classList.add('hidden');
-          emptyState.classList.remove('hidden');
+          feedbackLoading.classList.add('hidden');
+          feedbackEmpty.classList.remove('hidden');
           feedbackList.classList.add('hidden');
+        }
+      }
+      
+      // Fetch syllabus questions
+      async function fetchSyllabusQuestions() {
+        syllabusLoading.classList.remove('hidden');
+        syllabusEmpty.classList.add('hidden');
+        syllabusList.classList.add('hidden');
+        
+        try {
+          const response = await fetch(`${API_BASE_URL}/api/syllabus/questions`, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          
+          if (!response.ok) {
+            throw new Error('Failed to fetch syllabus questions');
+          }
+          
+          const questions = await response.json();
+          
+          if (questions.length > 0) {
+            // Render syllabus questions
+            renderSyllabusQuestions(questions);
+            syllabusLoading.classList.add('hidden');
+            syllabusEmpty.classList.add('hidden');
+            syllabusList.classList.remove('hidden');
+          } else {
+            // Show empty state
+            syllabusLoading.classList.add('hidden');
+            syllabusEmpty.classList.remove('hidden');
+            syllabusList.classList.add('hidden');
+          }
+        } catch (error) {
+          console.error('Error fetching syllabus questions:', error);
+          syllabusLoading.classList.add('hidden');
+          syllabusEmpty.classList.remove('hidden');
+          syllabusList.classList.add('hidden');
         }
       }
       
@@ -458,8 +593,60 @@
           .join(' ');
       }
       
-      // Refresh button
-      refreshButton.addEventListener('click', fetchFeedbackHistory);
+      // Render syllabus questions
+      function renderSyllabusQuestions(questions) {
+        syllabusList.innerHTML = '';
+        
+        questions.forEach(question => {
+          const questionItem = document.createElement('div');
+          questionItem.className = 'border border-gray-200 rounded-lg overflow-hidden';
+          
+          // Header
+          const header = document.createElement('div');
+          header.className = 'bg-gray-50 p-4 border-b border-gray-200 flex justify-between items-center';
+          
+          const questionInfo = document.createElement('div');
+          questionInfo.innerHTML = `
+            <h3 class="font-medium text-gray-800">${question.question_id}: ${question.topic}</h3>
+            <p class="text-sm text-gray-600">${question.max_marks} marks</p>
+          `;
+          
+          header.appendChild(questionInfo);
+          
+          // Body
+          const body = document.createElement('div');
+          body.className = 'p-4';
+          
+          body.innerHTML = `
+            <div class="mb-4">
+              <h4 class="font-medium text-gray-700 mb-2">Question:</h4>
+              <p class="text-gray-800">${question.question}</p>
+            </div>
+            <div class="flex justify-between items-center">
+              <div>
+                <h4 class="font-medium text-gray-700 mb-2">Marking Scheme:</h4>
+                <ul class="list-disc pl-5 text-sm text-gray-600">
+                  ${Object.entries(question.marking_scheme).map(([key, value]) => 
+                    `<li><span class="font-medium">${formatCriterionName(key)}</span>: ${value} mark${value > 1 ? 's' : ''}</li>`
+                  ).join('')}
+                </ul>
+              </div>
+              <a href="/?question=${question.question_id}" class="flex items-center bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition duration-300">
+                <span class="material-icons mr-2 text-sm">edit</span>
+                Answer
+              </a>
+            </div>
+          `;
+          
+          questionItem.appendChild(header);
+          questionItem.appendChild(body);
+          syllabusList.appendChild(questionItem);
+        });
+      }
+      
+      // Refresh buttons
+      refreshFeedbackButton.addEventListener('click', fetchFeedbackHistory);
+      refreshSyllabusButton.addEventListener('click', fetchSyllabusQuestions);
       
       // Initialize
       fetchUserProfile();
