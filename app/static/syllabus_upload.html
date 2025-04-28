@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Syllabus Upload - AI Exam Marker</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Material Icons -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+  <!-- Material Components Web -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/material-components-web/14.0.0/material-components-web.min.css" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/material-components-web/14.0.0/material-components-web.min.js"></script>
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+  
+  <style>
+    body {
+      font-family: 'Roboto', sans-serif;
+      background-color: #f5f5f5;
+    }
+    .mdc-card {
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    .mdc-button {
+      text-transform: none;
+      font-weight: 500;
+    }
+    .loader {
+      border: 4px solid #f3f3f3;
+      border-radius: 50%;
+      border-top: 4px solid #3498db;
+      width: 30px;
+      height: 30px;
+      animation: spin 1s linear infinite;
+      display: inline-block;
+      margin-right: 10px;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+  <!-- Navigation Bar -->
+  <nav class="bg-white shadow-md">
+    <div class="container mx-auto px-4 py-3">
+      <div class="flex justify-between items-center">
+        <div class="flex items-center">
+          <h1 class="text-xl font-bold text-gray-800">AI Exam Marking System</h1>
+        </div>
+        <div class="flex items-center space-x-4">
+          <span id="user-name" class="text-gray-700">Loading...</span>
+          <a href="/dashboard" class="flex items-center text-blue-600 hover:text-blue-800">
+            <span class="material-icons mr-1 text-sm">dashboard</span>
+            Dashboard
+          </a>
+          <button id="logout-button" class="flex items-center text-gray-600 hover:text-gray-800">
+            <span class="material-icons mr-1">logout</span>
+            Logout
+          </button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container mx-auto px-4 py-8">
+    <!-- Header -->
+    <header class="mb-8">
+      <h1 class="text-2xl font-bold text-gray-800">Upload Syllabus</h1>
+      <p class="text-gray-600 mt-2">Upload your syllabus to generate custom questions</p>
+    </header>
+
+    <!-- Main Content -->
+    <div class="grid grid-cols-1 md:grid-cols-12 gap-8">
+      <!-- Sidebar with Quick Links -->
+      <div class="md:col-span-3">
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+          <h2 class="text-lg font-semibold text-gray-800 mb-4">Quick Links</h2>
+          <ul class="space-y-2">
+            <li>
+              <a href="/" class="flex items-center text-blue-600 hover:text-blue-800">
+                <span class="material-icons mr-2 text-sm">home</span>
+                Home
+              </a>
+            </li>
+            <li>
+              <a href="/dashboard" class="flex items-center text-blue-600 hover:text-blue-800">
+                <span class="material-icons mr-2 text-sm">dashboard</span>
+                Dashboard
+              </a>
+            </li>
+            <li>
+              <a href="/syllabus" class="flex items-center text-blue-600 hover:text-blue-800 font-medium">
+                <span class="material-icons mr-2 text-sm">upload_file</span>
+                Upload Syllabus
+              </a>
+            </li>
+          </ul>
+        </div>
+      </div>
+      
+      <!-- Syllabus Upload Form -->
+      <div class="md:col-span-9">
+        <div class="bg-white rounded-lg shadow-md p-6">
+          <h2 class="text-xl font-semibold text-gray-800 mb-6">Upload Your Syllabus</h2>
+          
+          <div class="mb-6">
+            <label for="subject-input" class="block text-gray-700 mb-2">Subject Name:</label>
+            <input type="text" id="subject-input" class="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="e.g., Physics, Mathematics, Computer Science">
+          </div>
+          
+          <div class="mb-6">
+            <label for="syllabus-textarea" class="block text-gray-700 mb-2">Syllabus Content:</label>
+            <textarea id="syllabus-textarea" rows="10" class="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Paste your syllabus content here..."></textarea>
+            <p class="mt-2 text-xs text-gray-500">Include topics, subtopics, and key concepts for better question generation.</p>
+          </div>
+          
+          <div class="mb-6">
+            <label for="file-upload" class="block text-gray-700 mb-2">Or Upload a File:</label>
+            <div class="border-2 border-dashed border-gray-300 rounded-md p-6 text-center hover:border-blue-500 transition-colors">
+              <input type="file" id="file-upload" class="hidden" accept=".txt,.pdf,.docx">
+              <label for="file-upload" class="cursor-pointer">
+                <span class="material-icons text-gray-400 text-4xl mb-2">cloud_upload</span>
+                <p class="text-gray-600 mb-1">Click to upload or drag and drop</p>
+                <p class="text-xs text-gray-500">TXT, PDF, or DOCX (max. 5MB)</p>
+              </label>
+              <div id="file-preview" class="mt-4 hidden">
+                <div class="flex items-center justify-between bg-gray-50 p-3 rounded-md">
+                  <div class="flex items-center">
+                    <span class="material-icons text-blue-500 mr-2">description</span>
+                    <span id="file-name" class="text-gray-700"></span>
+                  </div>
+                  <button id="remove-file" class="text-red-500 hover:text-red-700">
+                    <span class="material-icons">close</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="mb-6">
+            <label for="question-count" class="block text-gray-700 mb-2">Number of Questions to Generate:</label>
+            <div class="relative">
+              <select id="question-count" class="w-full p-3 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="2">2 Questions</option>
+                <option value="5" selected>5 Questions</option>
+                <option value="10">10 Questions</option>
+                <option value="15">15 Questions</option>
+                <option value="20">20 Questions</option>
+              </select>
+              <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-700">
+                <span class="material-icons">expand_more</span>
+              </div>
+            </div>
+          </div>
+          
+          <button id="generate-button" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-md transition duration-300 flex items-center justify-center">
+            <span class="material-icons mr-2">auto_awesome</span>
+            Generate Questions
+          </button>
+          
+          <div id="generate-loader" class="hidden mt-4 text-center">
+            <div class="loader"></div>
+            <span class="text-gray-600">Generating questions from your syllabus...</span>
+          </div>
+          
+          <!-- Error Alert -->
+          <div id="error-alert" class="hidden mt-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
+            <strong class="font-bold">Error!</strong>
+            <span id="error-message" class="block sm:inline"></span>
+            <button id="close-error" class="absolute top-0 bottom-0 right-0 px-4 py-3">
+              <span class="material-icons">close</span>
+            </button>
+          </div>
+        </div>
+        
+        <!-- Generated Questions Preview -->
+        <div id="questions-preview" class="bg-white rounded-lg shadow-md p-6 mt-6 hidden">
+          <div class="flex items-center justify-between mb-6">
+            <h2 class="text-xl font-semibold text-gray-800">Generated Questions</h2>
+            <button id="save-questions" class="flex items-center bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md transition duration-300">
+              <span class="material-icons mr-2">save</span>
+              Save Questions
+            </button>
+          </div>
+          
+          <div id="questions-list" class="space-y-4">
+            <!-- Questions will be added here dynamically -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const API_BASE_URL = window.location.origin;
+      const userNameElement = document.getElementById('user-name');
+      const logoutButton = document.getElementById('logout-button');
+      const subjectInput = document.getElementById('subject-input');
+      const syllabusTextarea = document.getElementById('syllabus-textarea');
+      const fileUpload = document.getElementById('file-upload');
+      const filePreview = document.getElementById('file-preview');
+      const fileName = document.getElementById('file-name');
+      const removeFile = document.getElementById('remove-file');
+      const questionCount = document.getElementById('question-count');
+      const generateButton = document.getElementById('generate-button');
+      const generateLoader = document.getElementById('generate-loader');
+      const questionsPreview = document.getElementById('questions-preview');
+      const questionsList = document.getElementById('questions-list');
+      const saveQuestionsButton = document.getElementById('save-questions');
+      
+      // Check if user is logged in
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        window.location.href = '/login';
+        return;
+      }
+      
+      // Handle logout
+      logoutButton.addEventListener('click', function() {
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('token_type');
+        window.location.href = '/login';
+      });
+      
+      // Fetch user profile
+      async function fetchUserProfile() {
+        try {
+          const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          
+          if (!response.ok) {
+            throw new Error('Failed to fetch user profile');
+          }
+          
+          const user = await response.json();
+          userNameElement.textContent = user.student_name;
+        } catch (error) {
+          console.error('Error fetching user profile:', error);
+          userNameElement.textContent = 'User';
+        }
+      }
+      
+      // Handle file upload
+      fileUpload.addEventListener('change', function(e) {
+        if (this.files && this.files[0]) {
+          const file = this.files[0];
+          
+          // Check file type
+          const validTypes = ['.txt', '.pdf', '.docx'];
+          const fileExtension = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+          if (!validTypes.includes(fileExtension)) {
+            alert('Please select a valid file type (TXT, PDF, or DOCX)');
+            this.value = '';
+            return;
+          }
+          
+          // Check file size (5MB max)
+          if (file.size > 5 * 1024 * 1024) {
+            alert('File size exceeds 5MB limit');
+            this.value = '';
+            return;
+          }
+          
+          // Show file preview
+          fileName.textContent = file.name;
+          filePreview.classList.remove('hidden');
+          
+          // If it's a text file, read and populate the textarea
+          if (fileExtension === '.txt') {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+              syllabusTextarea.value = e.target.result;
+            };
+            reader.readAsText(file);
+          }
+        }
+      });
+      
+      // Handle remove file
+      removeFile.addEventListener('click', function() {
+        fileUpload.value = '';
+        filePreview.classList.add('hidden');
+        fileName.textContent = '';
+      });
+      
+      // Show error message
+      function showError(message) {
+        const errorAlert = document.getElementById('error-alert');
+        const errorMessage = document.getElementById('error-message');
+        
+        errorMessage.textContent = message;
+        errorAlert.classList.remove('hidden');
+        
+        // Auto-hide after 10 seconds
+        setTimeout(() => {
+          errorAlert.classList.add('hidden');
+        }, 10000);
+      }
+      
+      // Close error message
+      document.getElementById('close-error').addEventListener('click', function() {
+        document.getElementById('error-alert').classList.add('hidden');
+      });
+      
+      // Handle generate questions
+      generateButton.addEventListener('click', async function() {
+        const subject = subjectInput.value.trim();
+        const syllabus = syllabusTextarea.value.trim();
+        const count = questionCount.value;
+        const file = fileUpload.files[0];
+        
+        if (!subject) {
+          showError('Please enter a subject name');
+          return;
+        }
+        
+        if (!syllabus && !file) {
+          showError('Please enter syllabus content or upload a file');
+          return;
+        }
+        
+        if (syllabus && syllabus.length < 50) {
+          showError('Syllabus content is too short. Please provide more detailed content.');
+          return;
+        }
+        
+        // Show loader, disable button
+        generateButton.disabled = true;
+        generateLoader.classList.remove('hidden');
+        
+        // Hide any previous errors
+        document.getElementById('error-alert').classList.add('hidden');
+        
+        try {
+          // Create form data
+          const formData = new FormData();
+          formData.append('subject', subject);
+          formData.append('question_count', count);
+          
+          if (file) {
+            formData.append('file', file);
+          } else {
+            formData.append('syllabus_text', syllabus);
+          }
+          
+          const response = await fetch(`${API_BASE_URL}/api/syllabus/generate-questions`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`
+            },
+            body: formData
+          });
+          
+          if (!response.ok) {
+            // Get error details from response
+            const errorData = await response.json();
+            throw new Error(errorData.detail || 'Failed to generate questions');
+          }
+          
+          const result = await response.json();
+          
+          // Validate the result
+          if (!result || !result.questions || !Array.isArray(result.questions) || result.questions.length === 0) {
+            throw new Error('No questions were generated. Please try with more detailed syllabus content.');
+          }
+          
+          // Display generated questions
+          displayGeneratedQuestions(result.questions);
+          
+          // Show questions preview
+          questionsPreview.classList.remove('hidden');
+          
+          // Scroll to questions preview
+          questionsPreview.scrollIntoView({ behavior: 'smooth' });
+        } catch (error) {
+          console.error('Error generating questions:', error);
+          
+          let errorMessage = 'Failed to generate questions. Please try again.';
+          
+          // Try to extract more specific error message from the response
+          try {
+            if (error.response) {
+              const errorData = await error.response.json();
+              if (errorData.detail) {
+                errorMessage = errorData.detail;
+              }
+            } else if (typeof error === 'object' && error !== null) {
+              // Try to get a more descriptive error message
+              errorMessage = error.message || error.toString() || errorMessage;
+            }
+          } catch (e) {
+            console.error('Error parsing error response:', e);
+            // If we can't parse the error response, use the default message
+          }
+          
+          showError(errorMessage);
+        } finally {
+          // Hide loader, enable button
+          generateButton.disabled = false;
+          generateLoader.classList.add('hidden');
+        }
+      });
+      
+      // Display generated questions
+      function displayGeneratedQuestions(questions) {
+        questionsList.innerHTML = '';
+        
+        questions.forEach((question, index) => {
+          const questionItem = document.createElement('div');
+          questionItem.className = 'border border-gray-200 rounded-lg overflow-hidden';
+          
+          // Header
+          const header = document.createElement('div');
+          header.className = 'bg-gray-50 p-4 border-b border-gray-200 flex justify-between items-center';
+          
+          const questionInfo = document.createElement('div');
+          questionInfo.innerHTML = `
+            <h3 class="font-medium text-gray-800">Question ${index + 1}</h3>
+            <p class="text-sm text-gray-600">${question.topic} (${question.max_marks} marks)</p>
+          `;
+          
+          header.appendChild(questionInfo);
+          
+          // Body
+          const body = document.createElement('div');
+          body.className = 'p-4';
+          
+          body.innerHTML = `
+            <div class="mb-4">
+              <h4 class="font-medium text-gray-700 mb-2">Question:</h4>
+              <p class="text-gray-800">${question.question}</p>
+            </div>
+            <div class="mb-4">
+              <h4 class="font-medium text-gray-700 mb-2">Model Answer:</h4>
+              <p class="text-gray-800">${question.model_answer}</p>
+            </div>
+            <div>
+              <h4 class="font-medium text-gray-700 mb-2">Marking Scheme:</h4>
+              <ul class="list-disc pl-5 text-gray-800">
+                ${Object.entries(question.marking_scheme).map(([key, value]) => 
+                  `<li><span class="font-medium">${formatCriterionName(key)}</span>: ${value} mark${value > 1 ? 's' : ''}</li>`
+                ).join('')}
+              </ul>
+            </div>
+          `;
+          
+          questionItem.appendChild(header);
+          questionItem.appendChild(body);
+          questionsList.appendChild(questionItem);
+        });
+      }
+      
+      // Handle save questions
+      saveQuestionsButton.addEventListener('click', async function() {
+        // Disable button and show loading state
+        saveQuestionsButton.disabled = true;
+        saveQuestionsButton.innerHTML = `
+          <div class="loader mr-2"></div>
+          Saving...
+        `;
+        
+        try {
+          const response = await fetch(`${API_BASE_URL}/api/syllabus/save-questions`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          if (!response.ok) {
+            throw new Error('Failed to save questions');
+          }
+          
+          // Show success message
+          alert('Questions saved successfully! You can now view them in your dashboard.');
+          window.location.href = '/dashboard';
+        } catch (error) {
+          console.error('Error saving questions:', error);
+          showError('Failed to save questions. Please try again.');
+          
+          // Reset button
+          saveQuestionsButton.disabled = false;
+          saveQuestionsButton.innerHTML = `
+            <span class="material-icons mr-2">save</span>
+            Save Questions
+          `;
+        }
+      });
+      
+      // Format criterion name (convert snake_case to Title Case)
+      function formatCriterionName(criterion) {
+        return criterion
+          .split('_')
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(' ');
+      }
+      
+      // Initialize
+      fetchUserProfile();
+    });
+  </script>
+</body>
+</html>
