@@ -32,6 +32,7 @@ ENV/
 .vscode/
 *.swp
 *.swo
+
 .DS_Store
 
 # Google Cloud credentials
@@ -85,3 +86,6 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+
+# Test images
+test_images/
